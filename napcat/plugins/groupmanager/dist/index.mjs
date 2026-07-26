@@ -482,6 +482,7 @@ async function onEvent(ctx, event) {
 	if (currentConfig.ownlist.includes(String(event.operator_id))) return;
 	if (event.notice_type != 'group_recall') return;
 	const message = huancun.get(event.message_id);
+	 return;
 	if (Array.isArray(message)) {
 		message.unshift({
 			type: 'text',
