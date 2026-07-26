@@ -1,0 +1,13 @@
+{
+  "welcomeEnable": true,
+  "welcomeTemplate": "欢迎 {nickname}({user_id}) 加入本群！",
+  "filterKeywords": [],
+  "filterPunish": "none",
+  "groupListMode": "none",
+  "groupListIds": "",
+  "lockedNicknames": {},
+  "targetedUsers": [],
+  "ownlist": [],
+  "creditBalances": {},
+  "qunheimingdan": []
+}
