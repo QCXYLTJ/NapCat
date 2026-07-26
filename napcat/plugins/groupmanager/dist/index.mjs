@@ -112,7 +112,9 @@ async function onMessage(ctx, event) {
 		});
 	}
 
-	if (event.message_type !== 'group') return;
+	if (event.message_type !== 'group') {
+		return;
+	}
 	const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
 	const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
 	const selfguanli = ['owner', 'admin'].includes(own.role);
@@ -130,9 +132,15 @@ async function onMessage(ctx, event) {
 	const textall = textlist.join();
 
 	const fudu = function () {
-		if (isself) return;
-		if (userAdmin) return;
-		if (currentConfig.qunheimingdan.includes(groupId)) return;
+		if (isself) {
+			return;
+		}
+		if (userAdmin) {
+			return;
+		}
+		if (currentConfig.qunheimingdan.includes(groupId)) {
+			return;
+		}
 		return;
 		// 自动跟话
 		if (Math.random() < 0.1) {
@@ -173,9 +181,15 @@ async function onMessage(ctx, event) {
 	fudu();
 
 	const gongji = function () {
-		if (isself) return;
-		if (userAdmin) return;
-		if (currentConfig.qunheimingdan.includes(groupId)) return;
+		if (isself) {
+			return;
+		}
+		if (userAdmin) {
+			return;
+		}
+		if (currentConfig.qunheimingdan.includes(groupId)) {
+			return;
+		}
 		// 自动反击
 		if (currentConfig.ownlist.some((id) => atlist.includes(id)) && ['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄'].some((s) => textall.includes(s))) {
 			callOB11(ctx, 'send_group_msg', {
@@ -253,10 +267,10 @@ async function onMessage(ctx, event) {
 			// 一次性收集待修改成员
 			for (const m of ms) {
 				// 锁定名片
-				const id = m.user_id;
+				const id = String(m.user_id);
 				if (currentConfig.ownlist.includes(id)) {
 					continue;
-				}//不改自己人
+				} //不改自己人
 				if (['469160606'].includes(groupId)) {
 					if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
 						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' }); //整乐子修改群名片
@@ -406,7 +420,9 @@ async function onMessage(ctx, event) {
 				const balance = currentConfig.creditBalances[userId] || 0;
 				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `📊 你的禁言余额：${balance} 分钟` });
 			}
-			if (!userAdmin) return;
+			if (!userAdmin) {
+				return;
+			}
 			if (cmd === '开始攻击') {
 				if (!currentConfig.targetedUsers.includes(targetId)) {
 					currentConfig.targetedUsers.push(targetId);
@@ -443,7 +459,9 @@ async function onMessage(ctx, event) {
 				const list = currentConfig.ownlist.length === 0 ? '当前没有主人' : `主人列表：${currentConfig.ownlist.join(', ')}`;
 				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: list });
 			}
-			if (!selfguanli) return;
+			if (!selfguanli) {
+				return;
+			}
 			if (cmd == '违禁词添加') {
 				if (!currentConfig.filterKeywords.includes(params)) {
 					currentConfig.filterKeywords.push(params);
@@ -488,9 +506,15 @@ async function onMessage(ctx, event) {
 async function onEvent(ctx, event) {
 	//ctx.logger.info(event);
 	const groupId = String(event.group_id);
-	if (currentConfig.qunheimingdan.includes(groupId)) return;
-	if (currentConfig.ownlist.includes(String(event.operator_id))) return;
-	if (event.notice_type != 'group_recall') return;
+	if (currentConfig.qunheimingdan.includes(groupId)) {
+		return;
+	}
+	if (currentConfig.ownlist.includes(String(event.operator_id))) {
+		return;
+	}
+	if (event.notice_type != 'group_recall') {
+		return;
+	}
 	const message = huancun.get(event.message_id);
 	return;
 	if (Array.isArray(message)) {
