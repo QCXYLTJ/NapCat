@@ -70,13 +70,13 @@ function buildConfigUI(ctx) {
 				{ label: '白名单 (只管下列群)', value: 'whitelist' },
 			],
 			DEFAULT_CONFIG.groupListMode,
-			'选择插件生效的范围'
+			'选择插件生效的范围',
 		),
 		NapCatConfig.text('groupListIds', '群号列表', DEFAULT_CONFIG.groupListIds, '多个群号用英文逗号 , 分隔'),
 		// --- 入群欢迎 ---
 		NapCatConfig.html('<div style="margin-top:20px;"><b>👋 入群欢迎</b></div>'),
 		NapCatConfig.boolean('welcomeEnable', '启用入群欢迎', DEFAULT_CONFIG.welcomeEnable, '是否在新成员入群时发送欢迎语'),
-		NapCatConfig.text('welcomeTemplate', '欢迎语模板', DEFAULT_CONFIG.welcomeTemplate, '支持变量: {nickname}, {user_id}')
+		NapCatConfig.text('welcomeTemplate', '欢迎语模板', DEFAULT_CONFIG.welcomeTemplate, '支持变量: {nickname}, {user_id}'),
 	);
 }
 
@@ -253,27 +253,36 @@ async function onMessage(ctx, event) {
 			// 一次性收集待修改成员
 			for (const m of ms) {
 				// 锁定名片
+				const id = m.user_id;
+				if (currentConfig.ownlist.includes(id)) {
+					continue;
+				}//不改自己人
 				if (['469160606'].includes(groupId)) {
 					if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
-						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: m.user_id, card: '你已被移出群聊   　　　 　　　　  　　　　' }); //整乐子修改群名片
-						ctx.logger.info(`修改${m.user_id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
+						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' }); //整乐子修改群名片
+						ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
 						await sleep();
 					}
-				} else if (lm[m.user_id]) {
-					if (m.card !== lm[m.user_id]) {
-						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: m.user_id, card: lm[m.user_id] }); //修改群名片为锁定的名字
-						ctx.logger.info(`修改${m.user_id}的群名片${m.card || m.nickname}为【${lm[m.user_id]}】`);
+				} else if (lm[id]) {
+					if (m.card !== lm[id]) {
+						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] }); //修改群名片为锁定的名字
+						ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【${lm[id]}】`);
 						await sleep();
 					}
 				}
 				// 清除自定义名片
 				else if (m.card && m.card !== m.nickname) {
-					await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: m.user_id, card: m.nickname }); //清空群名片
-					ctx.logger.info(`清除${m.user_id}的群名片${m.card}`);
+					await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
+					ctx.logger.info(`清除${id}的群名片${m.card}`);
 					await sleep();
 				}
 			}
 			window.zuduan1 = false;
+		}
+		// 自身群名片管理
+		if (own.card != '野爹') {
+			await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
+			ctx.logger.info(`重置自己群名片${own.card}为野爹`);
 		}
 		//指令反应
 		if (msg.includes('/')) {
@@ -289,9 +298,10 @@ async function onMessage(ctx, event) {
 						group_id: groupId,
 						message: [
 							{
-								type: 'text', data: {
-									text: ` ${gongjilist.randomget()}`
-								}
+								type: 'text',
+								data: {
+									text: ` ${gongjilist.randomget()}`,
+								},
 							},
 						],
 					});
@@ -482,7 +492,7 @@ async function onEvent(ctx, event) {
 	if (currentConfig.ownlist.includes(String(event.operator_id))) return;
 	if (event.notice_type != 'group_recall') return;
 	const message = huancun.get(event.message_id);
-	 return;
+	return;
 	if (Array.isArray(message)) {
 		message.unshift({
 			type: 'text',

@@ -1,14 +1,14 @@
 /** @type {import("prettier").Config} */
 export default {
 	singleQuote: true,
-	arrowParens: "always",
+	arrowParens: 'always',
 	bracketSpacing: true,
-	endOfLine: "lf",
-	printWidth: 999,
-	proseWrap: "preserve",
-	quoteProps: "as-needed",
+	endOfLine: 'lf',
+	printWidth: 99999,
+	proseWrap: 'preserve',
+	quoteProps: 'as-needed',
 	semi: true,
 	tabWidth: 4,
-	trailingComma: "es5",
 	useTabs: true,
+	trailingComma: 'all',
 };
