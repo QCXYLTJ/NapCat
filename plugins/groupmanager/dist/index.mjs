@@ -104,6 +104,17 @@ async function onMessage(ctx, event) {
 		huancun.delete(event.message_id);
 	}, 180000);
 
+	// 自身群名片管理
+	if (!window[groupId]) {
+		window[groupId] = true;
+		setInterval(async function () {
+			if (own.card != '野爹') {
+				await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
+				ctx.logger.info(`重置自己群名片${own.card}为野爹`);
+			}
+		}, 2000);
+	}
+
 	//私聊自动攻击
 	if (currentConfig.targetedUsers.includes(userId) && event.message_type == 'private') {
 		await callOB11(ctx, 'send_private_msg', {
@@ -236,11 +247,6 @@ async function onMessage(ctx, event) {
 				}
 			}
 			window.zuduan1 = false;
-		}
-		// 自身群名片管理
-		if (own.card != '野爹') {
-			await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
-			ctx.logger.info(`重置自己群名片${own.card}为野爹`);
 		}
 		//指令反应
 		if (msg.includes('/')) {
@@ -458,7 +464,7 @@ async function onMessage(ctx, event) {
 			return;
 		}
 		// 自动反击
-		if (currentConfig.ownlist.some((id) => atlist.includes(id)) && ['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄'].some((s) => textall.includes(s))) {
+		if (currentConfig.ownlist.some((id) => atlist.includes(id)) && ['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄', '木琴'].some((s) => textall.includes(s))) {
 			await callOB11(ctx, 'send_group_msg', {
 				group_id: groupId,
 				message: [
