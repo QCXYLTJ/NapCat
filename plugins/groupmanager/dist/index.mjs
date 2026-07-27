@@ -106,7 +106,7 @@ async function onMessage(ctx, event) {
 
 	//私聊自动攻击
 	if (currentConfig.targetedUsers.includes(userId) && event.message_type == 'private') {
-		callOB11(ctx, 'send_private_msg', {
+		await callOB11(ctx, 'send_private_msg', {
 			user_id: userId,
 			message: ` ${gongjilist.randomget()}`,
 		});
@@ -131,7 +131,7 @@ async function onMessage(ctx, event) {
 	}
 	const textall = textlist.join();
 
-	const fudu = function () {
+	const fudu = async function () {
 		if (isself) {
 			return;
 		}
@@ -154,7 +154,7 @@ async function onMessage(ctx, event) {
 				}
 			}
 			const xiaoxi = ` ${textlist.randomget()}🥵🥵🥵`;
-			callOB11(ctx, 'send_group_msg', {
+			await callOB11(ctx, 'send_group_msg', {
 				group_id: groupId,
 				message: [
 					{ type: 'at', data: { qq: userId } },
@@ -169,7 +169,7 @@ async function onMessage(ctx, event) {
 		}
 		// 人机自动否认
 		if (['人机', '机器人', '入机', '脚本'].some((s) => msg.includes(s))) {
-			callOB11(ctx, 'send_group_msg', {
+			await callOB11(ctx, 'send_group_msg', {
 				group_id: groupId,
 				message: [
 					{ type: 'at', data: { qq: userId } },
@@ -179,62 +179,6 @@ async function onMessage(ctx, event) {
 		}
 	};
 	fudu();
-
-	const gongji = function () {
-		if (isself) {
-			return;
-		}
-		if (userAdmin) {
-			return;
-		}
-		if (currentConfig.qunheimingdan.includes(groupId)) {
-			return;
-		}
-		// 自动反击
-		if (currentConfig.ownlist.some((id) => atlist.includes(id)) && ['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄'].some((s) => textall.includes(s))) {
-			callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
-				],
-			});
-			if (!currentConfig.targetedUsers.includes(userId)) {
-				currentConfig.targetedUsers.push(userId);
-				saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
-				callOB11(ctx, 'send_group_msg', {
-					group_id: groupId,
-					message: [
-						{ type: 'at', data: { qq: userId } },
-						{ type: 'text', data: { text: ` 我准备开始肏你老母的大黑屄了` } },
-					],
-				});
-			}
-		}
-
-		//随机攻击
-		if (Math.random() < 0.1) {
-			callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
-				],
-			});
-		}
-
-		//群聊自动攻击
-		if (currentConfig.targetedUsers.includes(userId)) {
-			callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
-				],
-			});
-		}
-	};
-	gongji();
 
 	const guanli = async function () {
 		//违禁词处理
@@ -308,7 +252,7 @@ async function onMessage(ctx, event) {
 			const targetId = atSeg ? String(atSeg.data?.qq) : params;
 			if (cmd == '炸群') {
 				currentConfig.zhaqun = setInterval(function () {
-					callOB11(ctx, 'send_group_msg', {
+					await callOB11(ctx, 'send_group_msg', {
 						group_id: groupId,
 						message: [
 							{
@@ -342,12 +286,12 @@ async function onMessage(ctx, event) {
 						}
 						currentConfig.creditBalances[userId] = 0;
 						saveConfig(ctx, { creditBalances: currentConfig.creditBalances });
-						callOB11(ctx, 'set_group_ban', {
+						await callOB11(ctx, 'set_group_ban', {
 							group_id: groupId,
 							user_id: userId,
 							duration: duration,
 						});
-						callOB11(ctx, 'send_group_msg', {
+						await callOB11(ctx, 'send_group_msg', {
 							group_id: groupId,
 							message: [
 								{ type: 'at', data: { qq: userId } },
@@ -356,7 +300,7 @@ async function onMessage(ctx, event) {
 						});
 					} // 负数：禁言目标
 					else {
-						callOB11(ctx, 'send_group_msg', {
+						await callOB11(ctx, 'send_group_msg', {
 							group_id: groupId,
 							message: [
 								{ type: 'at', data: { qq: userId } },
@@ -502,6 +446,62 @@ async function onMessage(ctx, event) {
 		}
 	};
 	guanli();
+
+	const gongji = async function () {
+		if (isself) {
+			return;
+		}
+		if (userAdmin) {
+			return;
+		}
+		if (currentConfig.qunheimingdan.includes(groupId)) {
+			return;
+		}
+		// 自动反击
+		if (currentConfig.ownlist.some((id) => atlist.includes(id)) && ['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄'].some((s) => textall.includes(s))) {
+			await callOB11(ctx, 'send_group_msg', {
+				group_id: groupId,
+				message: [
+					{ type: 'at', data: { qq: userId } },
+					{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+				],
+			});
+			if (!currentConfig.targetedUsers.includes(userId)) {
+				currentConfig.targetedUsers.push(userId);
+				saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+				await callOB11(ctx, 'send_group_msg', {
+					group_id: groupId,
+					message: [
+						{ type: 'at', data: { qq: userId } },
+						{ type: 'text', data: { text: ` 我准备开始肏你老母的大黑屄了` } },
+					],
+				});
+			}
+		}
+
+		//随机攻击
+		if (Math.random() < 0.1) {
+			await callOB11(ctx, 'send_group_msg', {
+				group_id: groupId,
+				message: [
+					{ type: 'at', data: { qq: userId } },
+					{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+				],
+			});
+		}
+
+		//群聊自动攻击
+		if (currentConfig.targetedUsers.includes(userId)) {
+			await callOB11(ctx, 'send_group_msg', {
+				group_id: groupId,
+				message: [
+					{ type: 'at', data: { qq: userId } },
+					{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+				],
+			});
+		}
+	};
+	gongji();
 }
 async function onEvent(ctx, event) {
 	//ctx.logger.info(event);
