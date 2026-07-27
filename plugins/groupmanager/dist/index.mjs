@@ -251,7 +251,7 @@ async function onMessage(ctx, event) {
 			const atSeg = event.message.find((s) => s.type === 'at');
 			const targetId = atSeg ? String(atSeg.data?.qq) : params;
 			if (cmd == '炸群') {
-				currentConfig.zhaqun = setInterval(function () {
+				currentConfig.zhaqun = setInterval(async function () {
 					await callOB11(ctx, 'send_group_msg', {
 						group_id: groupId,
 						message: [
