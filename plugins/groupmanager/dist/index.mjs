@@ -108,6 +108,7 @@ async function onMessage(ctx, event) {
 	if (!window[groupId]) {
 		window[groupId] = true;
 		setInterval(async function () {
+			const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
 			if (own.card != '野爹') {
 				await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
 				ctx.logger.info(`重置自己群名片${own.card}为野爹`);
