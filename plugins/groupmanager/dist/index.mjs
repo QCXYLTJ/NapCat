@@ -116,21 +116,6 @@ async function onMessage(ctx, event) {
 		}, 2000);
 	}
 
-	//私聊自动攻击
-	if (currentConfig.targetedUsers.includes(userId) && event.message_type == 'private') {
-		await callOB11(ctx, 'send_private_msg', {
-			user_id: userId,
-			message: ` ${gongjilist.randomget()}`,
-		});
-	}
-
-	if (event.message_type !== 'group') {
-		return;
-	}
-	const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
-	const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
-	const selfguanli = ['owner', 'admin'].includes(own.role);
-	const userguanli = ['owner', 'admin'].includes(event.sender.role);
 	const atlist = [];
 	const textlist = [];
 	for (const obj of event.message) {
@@ -143,372 +128,406 @@ async function onMessage(ctx, event) {
 	}
 	const textall = textlist.join();
 
-	const fudu = async function () {
-		if (isself) {
-			return;
-		}
-		if (userAdmin) {
-			return;
-		}
-		if (currentConfig.qunheimingdan.includes(groupId)) {
-			return;
-		}
-		return;
-		// 自动跟话
-		if (Math.random() < 0.1) {
-			const textlist = [];
-			for (const obj of event.message) {
-				if (obj.type === 'text') {
-					const array = obj.data.text.split(/[，。, ]/);
-					for (const t of array) {
-						textlist.push(t);
-					}
-				}
+	//私聊
+	if (event.message_type == 'private') {
+		// 自动反击
+		if (['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄', '木琴', '母'].some((s) => textall.includes(s))) {
+			await callOB11(ctx, 'send_private_msg', {
+				user_id: userId,
+				message: ` ${gongjilist.randomget()}`,
+			});
+			if (!currentConfig.targetedUsers.includes(userId)) {
+				currentConfig.targetedUsers.push(userId);
+				saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+				await callOB11(ctx, 'send_private_msg', {
+					user_id: userId,
+					message: ` 我准备开始肏你老母的大黑屄了`,
+				});
 			}
-			const xiaoxi = ` ${textlist.randomget()}🥵🥵🥵`;
-			await callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{
-						type: 'text',
-						data: {
-							text: xiaoxi,
-						},
-					},
-				],
-			});
 		}
-		// 人机自动否认
-		if (['人机', '机器人', '入机', '脚本'].some((s) => msg.includes(s))) {
-			await callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{ type: 'text', data: { text: ` 我不是人机` } },
-				],
-			});
-		}
-	};
-	fudu();
 
-	const guanli = async function () {
-		//违禁词处理
-		if (!isself && !userAdmin && selfguanli && !userguanli && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
-			await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
-			await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
-			await callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{ type: 'text', data: { text: ` 因为发违禁词而被禁言五分钟` } },
-				],
+		//自动攻击
+		if (currentConfig.targetedUsers.includes(userId)) {
+			await callOB11(ctx, 'send_private_msg', {
+				user_id: userId,
+				message: ` ${gongjilist.randomget()}`,
 			});
 		}
-		//自动检测大段文字
-		if (textall.length > 99 && selfguanli && !isself && !userAdmin && !userguanli) {
-			await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
-			await callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{ type: 'text', data: { text: ` 因为发大段文字而被禁言五分钟` } },
-				],
-			});
-		}
-		// 群名片管理
-		if (!window.zuduan1 && selfguanli && !['369015096'].includes(groupId)) {
-			window.zuduan1 = true;
-			const lm = currentConfig.lockedNicknames;
-			// 一次性收集待修改成员
-			for (const m of ms) {
-				// 锁定名片
-				const id = String(m.user_id);
-				if (currentConfig.ownlist.includes(id)) {
-					continue;
-				} //不改自己人
-				if (['469160606'].includes(groupId)) {
-					if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
-						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' }); //整乐子修改群名片
-						ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
-						await sleep();
-					}
-				} else if (lm[id]) {
-					if (m.card !== lm[id]) {
-						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] }); //修改群名片为锁定的名字
-						ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【${lm[id]}】`);
-						await sleep();
-					}
-				}
-				// 清除自定义名片
-				else if (m.card && m.card !== m.nickname) {
-					await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
-					ctx.logger.info(`清除${id}的群名片${m.card}`);
-					await sleep();
-				}
+	}
+	//群聊
+	else {
+		const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
+		const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
+		const selfguanli = ['owner', 'admin'].includes(own.role);
+		const userguanli = ['owner', 'admin'].includes(event.sender.role);
+
+		const fudu = async function () {
+			if (isself) {
+				return;
 			}
-			window.zuduan1 = false;
-		}
-		//指令反应
-		if (msg.includes('/')) {
-			const parts = msg.split('/');
-			const cmd = parts[0];
-			const params = parts[1];
-			const lockName = parts[2];
-			const atSeg = event.message.find((s) => s.type === 'at');
-			const targetId = atSeg ? String(atSeg.data?.qq) : params;
-			if (cmd == '炸群') {
-				currentConfig.zhaqun = setInterval(async function () {
-					await callOB11(ctx, 'send_group_msg', {
-						group_id: groupId,
-						message: [
-							{
-								type: 'text',
-								data: {
-									text: ` ${gongjilist.randomget()}`,
-								},
-							},
-						],
-					});
-				}, 500);
+			if (userAdmin) {
+				return;
 			}
-			if (cmd == '停止炸群' && userAdmin && currentConfig.zhaqun) {
-				clearInterval(currentConfig.zhaqun);
+			if (currentConfig.qunheimingdan.includes(groupId)) {
+				return;
 			}
-			if (cmd == '禁言骰子' && selfguanli && !userguanli) {
-				setTimeout(async function () {
-					loadConfig(ctx);
-					const mins = Math.floor(Math.random() * 86400) - 43200; // -30 ~ 30
-					const currentBalance = currentConfig.creditBalances[userId] || 0;
-					currentConfig.creditBalances[userId] = currentBalance + mins;
-					saveConfig(ctx, { creditBalances: currentConfig.creditBalances });
-					const yue = currentConfig.creditBalances[userId];
-					if (yue < 0) {
-						let duration = Math.abs(yue) * 60; // 转秒
-						const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
-						const userinfo = shutlist.find((m) => String(m.uin) == userId);
-						if (userinfo) {
-							const now = Math.floor(Date.now() / 1000);
-							duration = duration + userinfo.shutUpTime - now;
+			return;
+			// 自动跟话
+			if (Math.random() < 0.1) {
+				const textlist = [];
+				for (const obj of event.message) {
+					if (obj.type === 'text') {
+						const array = obj.data.text.split(/[，。, ]/);
+						for (const t of array) {
+							textlist.push(t);
 						}
-						currentConfig.creditBalances[userId] = 0;
-						saveConfig(ctx, { creditBalances: currentConfig.creditBalances });
-						await callOB11(ctx, 'set_group_ban', {
-							group_id: groupId,
-							user_id: userId,
-							duration: duration,
-						});
+					}
+				}
+				const xiaoxi = ` ${textlist.randomget()}🥵🥵🥵`;
+				await callOB11(ctx, 'send_group_msg', {
+					group_id: groupId,
+					message: [
+						{ type: 'at', data: { qq: userId } },
+						{
+							type: 'text',
+							data: {
+								text: xiaoxi,
+							},
+						},
+					],
+				});
+			}
+			// 人机自动否认
+			if (['人机', '机器人', '入机', '脚本'].some((s) => msg.includes(s))) {
+				await callOB11(ctx, 'send_group_msg', {
+					group_id: groupId,
+					message: [
+						{ type: 'at', data: { qq: userId } },
+						{ type: 'text', data: { text: ` 我不是人机` } },
+					],
+				});
+			}
+		};
+		fudu();
+
+		const guanli = async function () {
+			//违禁词处理
+			if (!isself && !userAdmin && selfguanli && !userguanli && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
+				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
+				await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
+				await callOB11(ctx, 'send_group_msg', {
+					group_id: groupId,
+					message: [
+						{ type: 'at', data: { qq: userId } },
+						{ type: 'text', data: { text: ` 因为发违禁词而被禁言五分钟` } },
+					],
+				});
+			}
+			//自动检测大段文字
+			if (textall.length > 99 && selfguanli && !isself && !userAdmin && !userguanli) {
+				await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
+				await callOB11(ctx, 'send_group_msg', {
+					group_id: groupId,
+					message: [
+						{ type: 'at', data: { qq: userId } },
+						{ type: 'text', data: { text: ` 因为发大段文字而被禁言五分钟` } },
+					],
+				});
+			}
+			// 群名片管理
+			if (!window.zuduan1 && selfguanli && !['369015096'].includes(groupId)) {
+				window.zuduan1 = true;
+				const lm = currentConfig.lockedNicknames;
+				// 一次性收集待修改成员
+				for (const m of ms) {
+					// 锁定名片
+					const id = String(m.user_id);
+					if (currentConfig.ownlist.includes(id)) {
+						continue;
+					} //不改自己人
+					if (['469160606'].includes(groupId)) {
+						if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
+							await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' }); //整乐子修改群名片
+							ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
+							await sleep();
+						}
+					} else if (lm[id]) {
+						if (m.card !== lm[id]) {
+							await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] }); //修改群名片为锁定的名字
+							ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【${lm[id]}】`);
+							await sleep();
+						}
+					}
+					// 清除自定义名片
+					else if (m.card && m.card !== m.nickname) {
+						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
+						ctx.logger.info(`清除${id}的群名片${m.card}`);
+						await sleep();
+					}
+				}
+				window.zuduan1 = false;
+			}
+			//指令反应
+			if (msg.includes('/')) {
+				const parts = msg.split('/');
+				const cmd = parts[0];
+				const params = parts[1];
+				const lockName = parts[2];
+				const atSeg = event.message.find((s) => s.type === 'at');
+				const targetId = atSeg ? String(atSeg.data?.qq) : params;
+				if (cmd == '炸群') {
+					currentConfig.zhaqun = setInterval(async function () {
 						await callOB11(ctx, 'send_group_msg', {
 							group_id: groupId,
 							message: [
-								{ type: 'at', data: { qq: userId } },
-								{ type: 'text', data: { text: ` 原有禁言余额 ${currentBalance} ，骰子点数 ${mins}，当前禁言余额 ${yue} 。因为余额为负数，增加禁言 ${Math.abs(yue)} 分钟 🎲，然后将禁言余额归零。` } },
-							],
-						});
-					} // 负数：禁言目标
-					else {
-						await callOB11(ctx, 'send_group_msg', {
-							group_id: groupId,
-							message: [
-								{ type: 'at', data: { qq: userId } },
 								{
 									type: 'text',
-									data: { text: ` 原有禁言余额 ${currentBalance}，骰子点数 ${mins}，当前禁言余额 ${yue} 🎲` },
+									data: {
+										text: ` ${gongjilist.randomget()}`,
+									},
 								},
 							],
 						});
-					} // 正数：增加用户的禁言天数余额
-				}, Math.random() * 1000);
-			}
-			if (cmd === '禁言' && selfguanli) {
-				loadConfig(ctx);
-				const mins = Number(lockName);
-				let duration = mins * 60;
-				if (userguanli) {
-					await callOB11(ctx, 'set_group_ban', {
-						group_id: groupId,
-						user_id: targetId,
-						duration: duration,
-					});
-				} else {
-					const balance = currentConfig.creditBalances[userId] || 0;
-					if (balance <= 0) {
-						await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: '❌ 你没有可用的禁言余额。' });
-					} else {
-						if (isNaN(mins) || mins <= 0) {
-							await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: '❌ 请提供有效的禁言分钟，例如：禁言/@用户/3' });
-						} else if (balance < mins) {
-							await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `❌ 你的余额不足（剩余 ${balance} 分钟。` });
-						} // 检查余额
-						else {
+					}, 500);
+				}
+				if (cmd == '停止炸群' && userAdmin && currentConfig.zhaqun) {
+					clearInterval(currentConfig.zhaqun);
+				}
+				if (cmd == '禁言骰子' && selfguanli && !userguanli) {
+					setTimeout(async function () {
+						loadConfig(ctx);
+						const mins = Math.floor(Math.random() * 86400) - 43200; // -30 ~ 30
+						const currentBalance = currentConfig.creditBalances[userId] || 0;
+						currentConfig.creditBalances[userId] = currentBalance + mins;
+						saveConfig(ctx, { creditBalances: currentConfig.creditBalances });
+						const yue = currentConfig.creditBalances[userId];
+						if (yue < 0) {
+							let duration = Math.abs(yue) * 60; // 转秒
 							const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
-							const userinfo = shutlist.find((m) => String(m.uin) == targetId);
+							const userinfo = shutlist.find((m) => String(m.uin) == userId);
 							if (userinfo) {
 								const now = Math.floor(Date.now() / 1000);
 								duration = duration + userinfo.shutUpTime - now;
 							}
-							currentConfig.creditBalances[userId] = balance - mins;
+							currentConfig.creditBalances[userId] = 0;
 							saveConfig(ctx, { creditBalances: currentConfig.creditBalances });
 							await callOB11(ctx, 'set_group_ban', {
 								group_id: groupId,
-								user_id: targetId,
+								user_id: userId,
 								duration: duration,
 							});
 							await callOB11(ctx, 'send_group_msg', {
 								group_id: groupId,
 								message: [
-									{ type: 'at', data: { qq: targetId } },
-									{ type: 'text', data: { text: ` 已被 ${userId} 禁言 ${mins} 分钟，扣除 ${mins} 分钟余额，剩余余额 ${currentConfig.creditBalances[userId]}` } },
+									{ type: 'at', data: { qq: userId } },
+									{ type: 'text', data: { text: ` 原有禁言余额 ${currentBalance} ，骰子点数 ${mins}，当前禁言余额 ${yue} 。因为余额为负数，增加禁言 ${Math.abs(yue)} 分钟 🎲，然后将禁言余额归零。` } },
 								],
 							});
-						} // 执行禁言
+						} // 负数：禁言目标
+						else {
+							await callOB11(ctx, 'send_group_msg', {
+								group_id: groupId,
+								message: [
+									{ type: 'at', data: { qq: userId } },
+									{
+										type: 'text',
+										data: { text: ` 原有禁言余额 ${currentBalance}，骰子点数 ${mins}，当前禁言余额 ${yue} 🎲` },
+									},
+								],
+							});
+						} // 正数：增加用户的禁言天数余额
+					}, Math.random() * 1000);
+				}
+				if (cmd === '禁言' && selfguanli) {
+					loadConfig(ctx);
+					const mins = Number(lockName);
+					let duration = mins * 60;
+					if (userguanli) {
+						await callOB11(ctx, 'set_group_ban', {
+							group_id: groupId,
+							user_id: targetId,
+							duration: duration,
+						});
+					} else {
+						const balance = currentConfig.creditBalances[userId] || 0;
+						if (balance <= 0) {
+							await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: '❌ 你没有可用的禁言余额。' });
+						} else {
+							if (isNaN(mins) || mins <= 0) {
+								await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: '❌ 请提供有效的禁言分钟，例如：禁言/@用户/3' });
+							} else if (balance < mins) {
+								await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `❌ 你的余额不足（剩余 ${balance} 分钟。` });
+							} // 检查余额
+							else {
+								const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
+								const userinfo = shutlist.find((m) => String(m.uin) == targetId);
+								if (userinfo) {
+									const now = Math.floor(Date.now() / 1000);
+									duration = duration + userinfo.shutUpTime - now;
+								}
+								currentConfig.creditBalances[userId] = balance - mins;
+								saveConfig(ctx, { creditBalances: currentConfig.creditBalances });
+								await callOB11(ctx, 'set_group_ban', {
+									group_id: groupId,
+									user_id: targetId,
+									duration: duration,
+								});
+								await callOB11(ctx, 'send_group_msg', {
+									group_id: groupId,
+									message: [
+										{ type: 'at', data: { qq: targetId } },
+										{ type: 'text', data: { text: ` 已被 ${userId} 禁言 ${mins} 分钟，扣除 ${mins} 分钟余额，剩余余额 ${currentConfig.creditBalances[userId]}` } },
+									],
+								});
+							} // 执行禁言
+						}
 					}
 				}
-			}
-			// 添加查询余额命令（可选，方便用户查看）
-			if (cmd === '禁言余额' && selfguanli) {
-				loadConfig(ctx);
-				const balance = currentConfig.creditBalances[userId] || 0;
-				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `📊 你的禁言余额：${balance} 分钟` });
-			}
-			if (!userAdmin) {
-				return;
-			}
-			if (cmd === '开始攻击') {
-				if (!currentConfig.targetedUsers.includes(targetId)) {
-					currentConfig.targetedUsers.push(targetId);
-					saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
-					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已开始攻击 ${targetId}` });
+				// 添加查询余额命令（可选，方便用户查看）
+				if (cmd === '禁言余额' && selfguanli) {
+					loadConfig(ctx);
+					const balance = currentConfig.creditBalances[userId] || 0;
+					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `📊 你的禁言余额：${balance} 分钟` });
 				}
-			}
-			if (cmd === '终止攻击') {
-				if (currentConfig.targetedUsers.includes(targetId)) {
-					currentConfig.targetedUsers.remove(targetId);
-					saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
-					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已终止攻击 ${targetId}` });
+				if (!userAdmin) {
+					return;
 				}
-			}
-			if (cmd === '攻击列表') {
-				const list = currentConfig.targetedUsers.length === 0 ? '当前没有被攻击的用户' : `攻击列表：${currentConfig.targetedUsers.join(', ')}`;
-				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: list });
-			}
-			if (cmd === '添加主人') {
-				if (!currentConfig.ownlist.includes(targetId)) {
-					currentConfig.ownlist.push(targetId);
-					saveConfig(ctx, { ownlist: currentConfig.ownlist });
-					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已添加 ${targetId} 为主人` });
+				if (cmd === '开始攻击') {
+					if (!currentConfig.targetedUsers.includes(targetId)) {
+						currentConfig.targetedUsers.push(targetId);
+						saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+						await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已开始攻击 ${targetId}` });
+					}
 				}
-			}
-			if (cmd === '移除主人') {
-				if (currentConfig.ownlist.includes(targetId)) {
-					currentConfig.ownlist.remove(targetId);
-					saveConfig(ctx, { ownlist: currentConfig.ownlist });
-					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已移除 ${targetId} 的主人权限` });
+				if (cmd === '终止攻击') {
+					if (currentConfig.targetedUsers.includes(targetId)) {
+						currentConfig.targetedUsers.remove(targetId);
+						saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+						await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已终止攻击 ${targetId}` });
+					}
 				}
-			}
-			if (cmd === '主人列表') {
-				const list = currentConfig.ownlist.length === 0 ? '当前没有主人' : `主人列表：${currentConfig.ownlist.join(', ')}`;
-				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: list });
-			}
-			if (!selfguanli) {
-				return;
-			}
-			if (cmd == '违禁词添加') {
-				if (!currentConfig.filterKeywords.includes(params)) {
-					currentConfig.filterKeywords.push(params);
-					saveConfig(ctx, { filterKeywords: currentConfig.filterKeywords });
+				if (cmd === '攻击列表') {
+					const list = currentConfig.targetedUsers.length === 0 ? '当前没有被攻击的用户' : `攻击列表：${currentConfig.targetedUsers.join(', ')}`;
+					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: list });
 				}
-				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `违禁词添加 ${params}` });
-			}
-			if (cmd == '违禁词移除') {
-				if (currentConfig.filterKeywords.includes(params)) {
-					currentConfig.filterKeywords.remove(params);
-					saveConfig(ctx, { filterKeywords: currentConfig.filterKeywords });
+				if (cmd === '添加主人') {
+					if (!currentConfig.ownlist.includes(targetId)) {
+						currentConfig.ownlist.push(targetId);
+						saveConfig(ctx, { ownlist: currentConfig.ownlist });
+						await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已添加 ${targetId} 为主人` });
+					}
 				}
-				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `违禁词移除 ${params}` });
-			}
-			if (cmd == '违禁词列表') {
-				const list = `违禁词列表：${currentConfig.filterKeywords.join(', ')}`;
-				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: list });
-			}
-			//禁言骰子
-			if (cmd === '锁定名片') {
-				await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: targetId, card: lockName });
-				currentConfig.lockedNicknames[targetId] = lockName;
-				saveConfig(ctx, { lockedNicknames: currentConfig.lockedNicknames });
-				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已锁定 ${targetId} 的群名片为: ${lockName}` });
-			}
-			if (cmd === '解锁名片') {
-				if (currentConfig.lockedNicknames[targetId]) {
-					delete currentConfig.lockedNicknames[targetId];
+				if (cmd === '移除主人') {
+					if (currentConfig.ownlist.includes(targetId)) {
+						currentConfig.ownlist.remove(targetId);
+						saveConfig(ctx, { ownlist: currentConfig.ownlist });
+						await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已移除 ${targetId} 的主人权限` });
+					}
+				}
+				if (cmd === '主人列表') {
+					const list = currentConfig.ownlist.length === 0 ? '当前没有主人' : `主人列表：${currentConfig.ownlist.join(', ')}`;
+					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: list });
+				}
+				if (!selfguanli) {
+					return;
+				}
+				if (cmd == '违禁词添加') {
+					if (!currentConfig.filterKeywords.includes(params)) {
+						currentConfig.filterKeywords.push(params);
+						saveConfig(ctx, { filterKeywords: currentConfig.filterKeywords });
+					}
+					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `违禁词添加 ${params}` });
+				}
+				if (cmd == '违禁词移除') {
+					if (currentConfig.filterKeywords.includes(params)) {
+						currentConfig.filterKeywords.remove(params);
+						saveConfig(ctx, { filterKeywords: currentConfig.filterKeywords });
+					}
+					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `违禁词移除 ${params}` });
+				}
+				if (cmd == '违禁词列表') {
+					const list = `违禁词列表：${currentConfig.filterKeywords.join(', ')}`;
+					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: list });
+				}
+				//禁言骰子
+				if (cmd === '锁定名片') {
+					await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: targetId, card: lockName });
+					currentConfig.lockedNicknames[targetId] = lockName;
 					saveConfig(ctx, { lockedNicknames: currentConfig.lockedNicknames });
-					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已解除 ${targetId} 的群名片锁定` });
+					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已锁定 ${targetId} 的群名片为: ${lockName}` });
+				}
+				if (cmd === '解锁名片') {
+					if (currentConfig.lockedNicknames[targetId]) {
+						delete currentConfig.lockedNicknames[targetId];
+						saveConfig(ctx, { lockedNicknames: currentConfig.lockedNicknames });
+						await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `已解除 ${targetId} 的群名片锁定` });
+					}
+				}
+				if (cmd === '锁定名片列表') {
+					const locked = Object.entries(currentConfig.lockedNicknames);
+					const listMsg = locked.map(([qq, name]) => `${qq}: ${name}`).join('\n');
+					await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `锁定名片列表:\n${listMsg}` });
 				}
 			}
-			if (cmd === '锁定名片列表') {
-				const locked = Object.entries(currentConfig.lockedNicknames);
-				const listMsg = locked.map(([qq, name]) => `${qq}: ${name}`).join('\n');
-				await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `锁定名片列表:\n${listMsg}` });
-			}
-		}
-	};
-	guanli();
+		};
+		guanli();
 
-	const gongji = async function () {
-		if (isself) {
-			return;
-		}
-		if (userAdmin) {
-			return;
-		}
-		if (currentConfig.qunheimingdan.includes(groupId)) {
-			return;
-		}
-		// 自动反击
-		if (currentConfig.ownlist.some((id) => atlist.includes(id)) && ['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄', '木琴'].some((s) => textall.includes(s))) {
-			await callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
-				],
-			});
-			if (!currentConfig.targetedUsers.includes(userId)) {
-				currentConfig.targetedUsers.push(userId);
-				saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+		const gongji = async function () {
+			if (isself) {
+				return;
+			}
+			if (userAdmin) {
+				return;
+			}
+			if (currentConfig.qunheimingdan.includes(groupId)) {
+				return;
+			}
+			// 自动反击
+			if (currentConfig.ownlist.some((id) => atlist.includes(id)) && ['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄', '木琴'].some((s) => textall.includes(s))) {
 				await callOB11(ctx, 'send_group_msg', {
 					group_id: groupId,
 					message: [
 						{ type: 'at', data: { qq: userId } },
-						{ type: 'text', data: { text: ` 我准备开始肏你老母的大黑屄了` } },
+						{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+					],
+				});
+				if (!currentConfig.targetedUsers.includes(userId)) {
+					currentConfig.targetedUsers.push(userId);
+					saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+					await callOB11(ctx, 'send_group_msg', {
+						group_id: groupId,
+						message: [
+							{ type: 'at', data: { qq: userId } },
+							{ type: 'text', data: { text: ` 我准备开始肏你老母的大黑屄了` } },
+						],
+					});
+				}
+			}
+
+			//随机攻击
+			if (Math.random() < 0.1) {
+				await callOB11(ctx, 'send_group_msg', {
+					group_id: groupId,
+					message: [
+						{ type: 'at', data: { qq: userId } },
+						{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
 					],
 				});
 			}
-		}
 
-		//随机攻击
-		if (Math.random() < 0.1) {
-			await callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
-				],
-			});
-		}
-
-		//群聊自动攻击
-		if (currentConfig.targetedUsers.includes(userId)) {
-			await callOB11(ctx, 'send_group_msg', {
-				group_id: groupId,
-				message: [
-					{ type: 'at', data: { qq: userId } },
-					{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
-				],
-			});
-		}
-	};
-	gongji();
+			//群聊自动攻击
+			if (currentConfig.targetedUsers.includes(userId)) {
+				await callOB11(ctx, 'send_group_msg', {
+					group_id: groupId,
+					message: [
+						{ type: 'at', data: { qq: userId } },
+						{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+					],
+				});
+			}
+		};
+		gongji();
+	}
 }
 async function onEvent(ctx, event) {
 	//ctx.logger.info(event);
