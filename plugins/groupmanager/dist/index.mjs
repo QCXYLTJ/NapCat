@@ -90,32 +90,11 @@ const huancun = new Map();
 
 async function onMessage(ctx, event) {
 	//ctx.logger.info(event);
-	const groupId = String(event.group_id);
-	const msg = event.raw_message?.trim() || '';
 	const userId = String(event.user_id);
 	const userAdmin = currentConfig.ownlist.includes(userId);
 	const ownerinfo = await callOB11(ctx, 'get_login_info', {});
 	const ownerqq = String(ownerinfo.user_id);
 	const isself = userId === ownerqq;
-
-	//加入缓存
-	huancun.set(event.message_id, event.message);
-	setTimeout(() => {
-		huancun.delete(event.message_id);
-	}, 180000);
-
-	// 自身群名片管理
-	if (!window[groupId]) {
-		window[groupId] = true;
-		setInterval(async function () {
-			const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
-			if (own.card != '野爹') {
-				await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
-				ctx.logger.info(`重置自己群名片${own.card}为野爹`);
-			}
-		}, 2000);
-	}
-
 	const atlist = [];
 	const textlist = [];
 	for (const obj of event.message) {
@@ -127,6 +106,12 @@ async function onMessage(ctx, event) {
 		}
 	}
 	const textall = textlist.join();
+
+	//加入缓存
+	huancun.set(event.message_id, event.message);
+	setTimeout(() => {
+		huancun.delete(event.message_id);
+	}, 180000);
 
 	//私聊
 	if (event.message_type == 'private') {
@@ -162,6 +147,8 @@ async function onMessage(ctx, event) {
 		const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
 		const selfguanli = ['owner', 'admin'].includes(own.role);
 		const userguanli = ['owner', 'admin'].includes(event.sender.role);
+		const groupId = String(event.group_id);
+		const msg = event.raw_message?.trim() || '';
 
 		const fudu = async function () {
 			if (isself) {
@@ -213,6 +200,17 @@ async function onMessage(ctx, event) {
 		fudu();
 
 		const guanli = async function () {
+			// 自身群名片管理
+			if (!window[groupId]) {
+				window[groupId] = true;
+				setInterval(async function () {
+					const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
+					if (own.card != '野爹') {
+						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
+						ctx.logger.info(`重置自己群名片${own.card}为野爹`);
+					}
+				}, 2000);
+			}
 			//违禁词处理
 			if (!isself && !userAdmin && selfguanli && !userguanli && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
 				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
