@@ -143,11 +143,11 @@ async function onMessage(ctx, event) {
 	}
 	//群聊
 	else {
+		const groupId = String(event.group_id);
 		const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
 		const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
 		const selfguanli = ['owner', 'admin'].includes(own.role);
 		const userguanli = ['owner', 'admin'].includes(event.sender.role);
-		const groupId = String(event.group_id);
 		const msg = event.raw_message?.trim() || '';
 
 		const fudu = async function () {
