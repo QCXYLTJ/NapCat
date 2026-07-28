@@ -130,28 +130,30 @@ async function onMessage(ctx, event) {
 
 	//私聊
 	if (event.message_type == 'private') {
-		// 自动反击
-		if (['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄', '木琴', '母'].some((s) => textall.includes(s))) {
-			await callOB11(ctx, 'send_private_msg', {
-				user_id: userId,
-				message: ` ${gongjilist.randomget()}`,
-			});
-			if (!currentConfig.targetedUsers.includes(userId)) {
-				currentConfig.targetedUsers.push(userId);
-				saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+		if (!isself) {
+			// 自动反击
+			if (['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄', '木琴', '母'].some((s) => textall.includes(s))) {
 				await callOB11(ctx, 'send_private_msg', {
 					user_id: userId,
-					message: ` 我准备开始肏你老母的大黑屄了`,
+					message: ` ${gongjilist.randomget()}`,
+				});
+				if (!currentConfig.targetedUsers.includes(userId)) {
+					currentConfig.targetedUsers.push(userId);
+					saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+					await callOB11(ctx, 'send_private_msg', {
+						user_id: userId,
+						message: ` 我准备开始肏你老母的大黑屄了`,
+					});
+				}
+			}
+
+			//自动攻击
+			if (currentConfig.targetedUsers.includes(userId)) {
+				await callOB11(ctx, 'send_private_msg', {
+					user_id: userId,
+					message: ` ${gongjilist.randomget()}`,
 				});
 			}
-		}
-
-		//自动攻击
-		if (currentConfig.targetedUsers.includes(userId)) {
-			await callOB11(ctx, 'send_private_msg', {
-				user_id: userId,
-				message: ` ${gongjilist.randomget()}`,
-			});
 		}
 	}
 	//群聊
