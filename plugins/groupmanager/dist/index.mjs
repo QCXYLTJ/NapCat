@@ -209,7 +209,7 @@ async function onMessage(ctx, event) {
 						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
 						ctx.logger.info(`重置自己群名片${own.card}为野爹`);
 					}
-				}, 2000);
+				}, 60000);
 			}
 			//违禁词处理
 			if (!isself && !userAdmin && selfguanli && !userguanli && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
