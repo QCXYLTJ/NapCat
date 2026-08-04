@@ -487,8 +487,8 @@ async function onMessage(ctx, event) {
 				await callOB11(ctx, 'send_group_msg', {
 					group_id: groupId,
 					message: [
-						{ type: 'at', data: { qq: userId } },
 						{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+						{ type: 'at', data: { qq: userId } },
 					],
 				});
 				if (!currentConfig.targetedUsers.includes(userId)) {
@@ -497,8 +497,8 @@ async function onMessage(ctx, event) {
 					await callOB11(ctx, 'send_group_msg', {
 						group_id: groupId,
 						message: [
-							{ type: 'at', data: { qq: userId } },
 							{ type: 'text', data: { text: ` 我准备开始肏你老母的大黑屄了` } },
+							{ type: 'at', data: { qq: userId } },
 						],
 					});
 				}
@@ -509,8 +509,8 @@ async function onMessage(ctx, event) {
 				await callOB11(ctx, 'send_group_msg', {
 					group_id: groupId,
 					message: [
-						{ type: 'at', data: { qq: userId } },
 						{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+						{ type: 'at', data: { qq: userId } },
 					],
 				});
 			}
@@ -520,8 +520,8 @@ async function onMessage(ctx, event) {
 				await callOB11(ctx, 'send_group_msg', {
 					group_id: groupId,
 					message: [
-						{ type: 'at', data: { qq: userId } },
 						{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+						{ type: 'at', data: { qq: userId } },
 					],
 				});
 			}
