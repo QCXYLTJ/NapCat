@@ -151,6 +151,7 @@ async function onMessage(ctx, event) {
 		const msg = event.raw_message?.trim() || '';
 
 		const fudu = async function () {
+			return;//暂停复读
 			if (isself) {
 				return;
 			}
@@ -160,7 +161,6 @@ async function onMessage(ctx, event) {
 			if (currentConfig.qunheimingdan.includes(groupId)) {
 				return;
 			}
-			return;
 			// 自动跟话
 			if (Math.random() < 0.1) {
 				const textlist = [];
@@ -473,6 +473,7 @@ async function onMessage(ctx, event) {
 		guanli();
 
 		const gongji = async function () {
+			return;//暂停攻击
 			if (isself) {
 				return;
 			}
