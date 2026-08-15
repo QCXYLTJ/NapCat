@@ -30,7 +30,6 @@ Reflect.defineProperty(Array.prototype, 'randomget', {
 		return arr[Math.floor(Math.random() * arr.length)] || '';
 	},
 });
-const sleep = () => new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * 1000) + 4000));
 const window = {};
 window.gaiming = [];
 let currentConfig = { ...DEFAULT_CONFIG };
@@ -145,7 +144,6 @@ async function onMessage(ctx, event) {
 	else {
 		const groupId = String(event.group_id);
 		const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
-		const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
 		const selfguanli = ['owner', 'admin'].includes(own.role);
 		const userguanli = ['owner', 'admin'].includes(event.sender.role);
 		const msg = event.raw_message?.trim() || '';
@@ -200,14 +198,44 @@ async function onMessage(ctx, event) {
 		fudu();
 
 		const guanli = async function () {
-			// 自身群名片管理
+			// 群名片管理
 			if (!window[groupId]) {
 				window[groupId] = true;
 				setInterval(async function () {
+					// 自身群名片管理
 					const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
 					if (own.card != '野爹') {
 						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
 						ctx.logger.info(`重置自己群名片${own.card}为野爹`);
+					}
+					// 他人群名片管理
+					if (selfguanli) {
+						const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
+						const lm = currentConfig.lockedNicknames;
+						// 一次性收集待修改成员
+						for (const m of ms) {
+							// 锁定名片
+							const id = String(m.user_id);
+							if (currentConfig.ownlist.includes(id)) {
+								continue;
+							} //不改自己人
+							if (['469160606'].includes(groupId)) {
+								if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
+									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' }); //整乐子修改群名片
+									ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
+								}
+							} else if (lm[id]) {
+								if (m.card !== lm[id]) {
+									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] }); //修改群名片为锁定的名字
+									ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【${lm[id]}】`);
+								}
+							}
+							// 清除自定义名片
+							else if (m.card && m.card !== m.nickname) {
+								await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
+								ctx.logger.info(`清除${id}的群名片${m.card}`);
+							}
+						}
 					}
 				}, 60000);
 			}
@@ -233,39 +261,6 @@ async function onMessage(ctx, event) {
 						{ type: 'text', data: { text: ` 因为发大段文字而被禁言五分钟` } },
 					],
 				});
-			}
-			// 群名片管理
-			if (!window.zuduan1 && selfguanli && !['369015096'].includes(groupId)) {
-				window.zuduan1 = true;
-				const lm = currentConfig.lockedNicknames;
-				// 一次性收集待修改成员
-				for (const m of ms) {
-					// 锁定名片
-					const id = String(m.user_id);
-					if (currentConfig.ownlist.includes(id)) {
-						continue;
-					} //不改自己人
-					if (['469160606'].includes(groupId)) {
-						if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
-							await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' }); //整乐子修改群名片
-							ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
-							await sleep();
-						}
-					} else if (lm[id]) {
-						if (m.card !== lm[id]) {
-							await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] }); //修改群名片为锁定的名字
-							ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【${lm[id]}】`);
-							await sleep();
-						}
-					}
-					// 清除自定义名片
-					else if (m.card && m.card !== m.nickname) {
-						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
-						ctx.logger.info(`清除${id}的群名片${m.card}`);
-						await sleep();
-					}
-				}
-				window.zuduan1 = false;
 			}
 			//指令反应
 			if (msg.includes('/')) {
