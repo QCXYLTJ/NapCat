@@ -237,6 +237,7 @@ async function onMessage(ctx, event) {
 							}
 						}
 					}
+					ctx.logger.info(`检测群聊${groupId}名片已完成`);
 				}, 60000);
 			}
 			//违禁词处理
