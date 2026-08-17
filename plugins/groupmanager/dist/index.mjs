@@ -530,11 +530,11 @@ async function onEvent(ctx, event) {
 	//ctx.logger.info(event);
 	const groupId = String(event.group_id);
 	const userId = String(event.user_id);
-	const userInfo = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: userId, no_cache: true });
+	const userInfo = await callOB11(ctx, 'get_stranger_info', { user_id: userId, no_cache: true });
 	if (event.notice_type == 'group_decrease') {
-		let actionText = '主动退出了本群';
+		let actionText = '从本群逃跑了';
 		if (event.sub_type === 'kick') {
-			actionText = `被管理员 ${event.operator_id} 移出群聊`;
+			actionText = `被管理员 ${event.operator_id} 踹飞了`;
 		}
 		await callOB11(ctx, 'send_group_msg', {
 			group_id: groupId,
