@@ -529,35 +529,48 @@ async function onMessage(ctx, event) {
 async function onEvent(ctx, event) {
 	//ctx.logger.info(event);
 	const groupId = String(event.group_id);
-	if (currentConfig.qunheimingdan.includes(groupId)) {
-		return;
-	}
-	if (currentConfig.ownlist.includes(String(event.operator_id))) {
-		return;
-	}
-	if (event.notice_type != 'group_recall') {
-		return;
-	}
-	const message = huancun.get(event.message_id);
-	return;
-	if (Array.isArray(message)) {
-		message.unshift({
-			type: 'text',
-			data: {
-				text: ` 撤回了【`,
-			},
-		});
-		message.unshift({ type: 'at', data: { qq: String(event.user_id) } });
-		message.push({
-			type: 'text',
-			data: {
-				text: `】`,
-			},
-		});
+	const userId = String(event.user_id);
+	const userInfo = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: userId, no_cache: true });
+	if (event.notice_type == 'group_decrease') {
+		let actionText = '主动退出了本群';
+		if (event.sub_type === 'kick') {
+			actionText = `被管理员 ${event.operator_id} 移出群聊`;
+		}
 		await callOB11(ctx, 'send_group_msg', {
-			group_id: String(event.group_id),
-			message: message,
+			group_id: groupId,
+			message: [
+				{ type: 'text', data: { text: `⚠️用户 ${userInfo.nickname} (${userId}) ${actionText}` } },
+			],
 		});
+	}
+	if (event.notice_type == 'group_recall') {
+		return;
+		if (currentConfig.qunheimingdan.includes(groupId)) {
+			return;
+		}
+		if (currentConfig.ownlist.includes(String(event.operator_id))) {
+			return;
+		}
+		const message = huancun.get(event.message_id);
+		if (Array.isArray(message)) {
+			message.unshift({
+				type: 'text',
+				data: {
+					text: ` 撤回了【`,
+				},
+			});
+			message.unshift({ type: 'at', data: { qq: String(event.user_id) } });
+			message.push({
+				type: 'text',
+				data: {
+					text: `】`,
+				},
+			});
+			await callOB11(ctx, 'send_group_msg', {
+				group_id: String(event.group_id),
+				message: message,
+			});
+		}
 	}
 }
 
