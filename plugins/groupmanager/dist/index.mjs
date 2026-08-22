@@ -202,12 +202,6 @@ async function onMessage(ctx, event) {
 			if (!window[groupId]) {
 				window[groupId] = true;
 				setInterval(async function () {
-					// 自身群名片管理
-					const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
-					if (own.card != '野爹') {
-						await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
-						ctx.logger.info(`重置自己群名片${own.card}为野爹`);
-					}
 					// 他人群名片管理
 					if (selfguanli) {
 						const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
@@ -218,23 +212,32 @@ async function onMessage(ctx, event) {
 							const id = String(m.user_id);
 							if (currentConfig.ownlist.includes(id)) {
 								continue;
-							} //不改自己人
-							if (['469160606'].includes(groupId)) {
-								if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
-									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' }); //整乐子修改群名片
-									ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
-								}
-							} else if (lm[id]) {
+							} // 不改自己人							
+							if (lm[id]) {
 								if (m.card !== lm[id]) {
-									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] }); //修改群名片为锁定的名字
+									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] });
 									ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【${lm[id]}】`);
 								}
-							}
-							// 清除自定义名片
-							else if (m.card && m.card !== m.nickname) {
+							}// 修改群名片为锁定的名字
+							else {
+								if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
+									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' });
+									ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
+								}
+							}// 整乐子修改群名片
+							continue;
+							if (m.card && m.card !== m.nickname) {
 								await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
 								ctx.logger.info(`清除${id}的群名片${m.card}`);
-							}
+							}// 清除自定义名片
+						}
+					}
+					// 自身群名片管理
+					else {
+						const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
+						if (own.card != '野爹') {
+							await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: '野爹' }); //清空群名片
+							ctx.logger.info(`重置自己群名片${own.card}为野爹`);
 						}
 					}
 					ctx.logger.info(`检测群聊${groupId}名片已完成`);
