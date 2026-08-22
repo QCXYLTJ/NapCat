@@ -30,6 +30,9 @@ Reflect.defineProperty(Array.prototype, 'randomget', {
 		return arr[Math.floor(Math.random() * arr.length)] || '';
 	},
 });
+const sleep = function (ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+};
 const window = {};
 window.gaiming = [];
 let currentConfig = { ...DEFAULT_CONFIG };
@@ -201,7 +204,7 @@ async function onMessage(ctx, event) {
 			// 群名片管理
 			if (!window[groupId]) {
 				window[groupId] = true;
-				setInterval(async function () {
+				const gaiming = async function () {
 					// 他人群名片管理
 					if (selfguanli) {
 						const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
@@ -223,6 +226,7 @@ async function onMessage(ctx, event) {
 								if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
 									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' });
 									ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
+									await sleep(6000);
 								}
 							}// 整乐子修改群名片
 							continue;
@@ -241,7 +245,9 @@ async function onMessage(ctx, event) {
 						}
 					}
 					ctx.logger.info(`检测群聊${groupId}名片已完成`);
-				}, 60000);
+					setTimeout(gaiming, 60000);
+				};
+				gaiming();
 			}
 			//违禁词处理
 			if (!isself && !userAdmin && selfguanli && !userguanli && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
