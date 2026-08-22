@@ -531,6 +531,7 @@ async function onEvent(ctx, event) {
 	const groupId = String(event.group_id);
 	const userId = String(event.user_id);
 	const userInfo = await callOB11(ctx, 'get_stranger_info', { user_id: userId, no_cache: true });
+	//退群广告
 	if (event.notice_type == 'group_decrease') {
 		let actionText = '从本群逃跑了';
 		if (event.sub_type === 'kick') {
@@ -543,8 +544,8 @@ async function onEvent(ctx, event) {
 			],
 		});
 	}
+	//防撤回
 	if (event.notice_type == 'group_recall') {
-		return;
 		if (currentConfig.qunheimingdan.includes(groupId)) {
 			return;
 		}
