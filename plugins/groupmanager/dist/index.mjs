@@ -252,23 +252,39 @@ async function onMessage(ctx, event) {
 			//违禁词处理
 			if (!isself && !userAdmin && selfguanli && !userguanli && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
 				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
-				await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
-				await callOB11(ctx, 'send_group_msg', {
-					group_id: groupId,
-					message: [
-						{ type: 'at', data: { qq: userId } },
-						{ type: 'text', data: { text: ` 因为发违禁词而被禁言五分钟` } },
-					],
-				});
+				const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
+				if (!shutlist.find((m) => String(m.uin) == userId)) {
+					await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
+					await callOB11(ctx, 'send_group_msg', {
+						group_id: groupId,
+						message: [
+							{ type: 'at', data: { qq: userId } },
+							{ type: 'text', data: { text: ` 因为发违禁词而被禁言五分钟` } },
+						],
+					});
+				}
 			}
 			//自动检测大段文字
 			if (textall.length > 99 && selfguanli && !isself && !userAdmin && !userguanli) {
-				await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
+				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
+				const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
+				if (!shutlist.find((m) => String(m.uin) == userId)) {
+					await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
+					await callOB11(ctx, 'send_group_msg', {
+						group_id: groupId,
+						message: [
+							{ type: 'at', data: { qq: userId } },
+							{ type: 'text', data: { text: ` 因为发大段文字而被禁言五分钟` } },
+						],
+					});
+				}
+			}
+			if (msg.includes('回来吧，我的人机!')) {
 				await callOB11(ctx, 'send_group_msg', {
 					group_id: groupId,
 					message: [
 						{ type: 'at', data: { qq: userId } },
-						{ type: 'text', data: { text: ` 因为发大段文字而被禁言五分钟` } },
+						{ type: 'text', data: { text: ` 收到！大人，人机一号前来报道！` } },
 					],
 				});
 			}
