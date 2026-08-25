@@ -220,6 +220,18 @@ async function onMessage(ctx, event) {
 								if (m.card !== lm[id]) {
 									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] });
 									ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【${lm[id]}】`);
+									setTimeout(async function () {
+										const userinfo = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: id, no_cache: true });
+										if (userinfo.card == lm[id]) {
+											await callOB11(ctx, 'send_group_msg', {
+												group_id: groupId,
+												message: [
+													{ type: 'at', data: { qq: id } },
+													{ type: 'text', data: { text: ` 你的群名片已被改为${userinfo.card}` } },
+												],
+											});
+										}
+									}, 5000);
 								}
 							}// 修改群名片为锁定的名字
 							else {
