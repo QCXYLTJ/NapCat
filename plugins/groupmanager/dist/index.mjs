@@ -568,6 +568,17 @@ async function onEvent(ctx, event) {
 	const groupId = String(event.group_id);
 	const userId = String(event.user_id);
 	const userInfo = await callOB11(ctx, 'get_stranger_info', { user_id: userId, no_cache: true });
+	const atlist = [];
+	const textlist = [];
+	for (const obj of event.message) {
+		if (obj.type === 'at') {
+			atlist.push(obj.data.qq);
+		}
+		if (obj.type === 'text') {
+			textlist.push(obj.data.text);
+		}
+	}
+	const textall = textlist.join();
 	//退群广告
 	if (event.notice_type == 'group_decrease') {
 		let actionText = '从本群逃跑了';
@@ -587,6 +598,9 @@ async function onEvent(ctx, event) {
 			return;
 		}
 		if (currentConfig.ownlist.includes(String(event.operator_id))) {
+			return;
+		}
+		if (currentConfig.filterKeywords.some((s) => textall.includes(s))) {
 			return;
 		}
 		const message = huancun.get(event.message_id);
