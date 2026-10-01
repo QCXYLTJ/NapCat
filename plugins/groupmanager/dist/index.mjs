@@ -589,6 +589,14 @@ async function onEvent(ctx, event) {
 		if (currentConfig.ownlist.includes(String(event.operator_id))) {
 			return;
 		}
+		const userAdmin = currentConfig.ownlist.includes(userId);
+		const ownerinfo = await callOB11(ctx, 'get_login_info', {});
+		const ownerqq = String(ownerinfo.user_id);
+		const isself = userId === ownerqq;
+		const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
+		const usergroupInfo = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: userId, no_cache: true });
+		const selfguanli = ['owner', 'admin'].includes(own.role);
+		const userguanli = ['owner', 'admin'].includes(usergroupInfo.role);
 		const message = huancun.get(event.message_id);
 		if (Array.isArray(message)) {
 			const atlist = [];
@@ -622,6 +630,20 @@ async function onEvent(ctx, event) {
 				group_id: String(event.group_id),
 				message: message,
 			});
+		}
+		//撤回惩罚
+		if (!isself && !userAdmin && selfguanli && !userguanli) {
+			const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
+			if (!shutlist.find((m) => String(m.uin) == userId)) {
+				await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
+				await callOB11(ctx, 'send_group_msg', {
+					group_id: groupId,
+					message: [
+						{ type: 'at', data: { qq: userId } },
+						{ type: 'text', data: { text: ` 因为撤回消息而被禁言五分钟` } },
+					],
+				});
+			}
 		}
 	}
 }
