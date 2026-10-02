@@ -106,13 +106,13 @@ const pushBanTask = async function (task) {
 		const task1 = banTaskQueue.shift();
 		const shutlist = await callOB11(task1.ctx, 'get_group_shut_list', { group_id: task1.groupId, no_cache: true });
 		const userinfo = shutlist.find((m) => String(m.uin) == task1.userId);
-		let duration = Number(task.duration) * 60;
+		let duration = Number(task1.duration) * 60;
 		if (userinfo) {
 			const now = Math.floor(Date.now() / 1000);
 			duration = duration + (userinfo.shutUpTime - now);
 		}
 		if (!shutlist.find((m) => String(m.uin) == task1.userId)) {
-			await callOB11(ctx, 'set_group_ban', { group_id: task1.groupId, user_id: task1.userId, duration: task1.duration });
+			await callOB11(task1.ctx, 'set_group_ban', { group_id: task1.groupId, user_id: task1.userId, duration: duration });
 		}
 		await sleep(1000);
 	}
