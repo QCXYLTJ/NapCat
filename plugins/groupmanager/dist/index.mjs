@@ -584,7 +584,7 @@ async function onEvent(ctx, event) {
 			ctx,
 			groupId,
 			userId,
-			duration: 1800,
+			duration: 7200,
 		});
 	}
 	//退群广告
