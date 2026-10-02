@@ -31,7 +31,7 @@ Reflect.defineProperty(Array.prototype, 'randomget', {
 	},
 });
 const sleep = function (ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
+	return new Promise((resolve) => setTimeout(resolve, ms));
 };
 const window = {};
 window.gaiming = [];
@@ -88,6 +88,37 @@ async function callOB11(ctx, action, params) {
 		return result;
 	} catch (error) { }
 }
+
+// 禁言任务队列
+const banTaskQueue = [];
+let isBanConsumerRunning = false;
+const pushBanTask = async function (task) {
+	const existTask = banTaskQueue.find((t) => t.userId === task.userId);
+	if (existTask) {
+		existTask.addTime += 300;
+	} else {
+		banTaskQueue.push(task);
+	}
+	// 启动消费器（如果没在跑）
+	if (isBanConsumerRunning) return;
+	isBanConsumerRunning = true;
+	while (banTaskQueue.length > 0) {
+		const task1 = banTaskQueue.shift();
+		const shutlist = await callOB11(task1.ctx, 'get_group_shut_list', { group_id: task1.groupId, no_cache: true });
+		const userinfo = shutlist.find((m) => String(m.uin) == task1.userId);
+		let duration = Number(task.duration) * 60;
+		if (userinfo) {
+			const now = Math.floor(Date.now() / 1000);
+			duration = duration + (userinfo.shutUpTime - now);
+		}
+		if (!shutlist.find((m) => String(m.uin) == task1.userId)) {
+			await callOB11(ctx, 'set_group_ban', { group_id: task1.groupId, user_id: task1.userId, duration: task1.duration });
+		}
+		await sleep(1000);
+	}
+	isBanConsumerRunning = false;
+};
+
 const huancun = new Map();
 
 async function onMessage(ctx, event) {
@@ -119,7 +150,7 @@ async function onMessage(ctx, event) {
 	if (event.message_type == 'private') {
 		if (!isself) {
 			// 自动反击
-			if (['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄', '木琴', '母'].some((s) => textall.includes(s))) {
+			if (currentConfig.filterKeywords.some((s) => textall.includes(s))) {
 				await callOB11(ctx, 'send_private_msg', {
 					user_id: userId,
 					message: ` ${gongjilist.randomget()}`,
@@ -152,7 +183,7 @@ async function onMessage(ctx, event) {
 		const msg = event.raw_message?.trim() || '';
 
 		const fudu = async function () {
-			return;//暂停复读
+			return; //暂停复读
 			if (isself) {
 				return;
 			}
@@ -215,7 +246,7 @@ async function onMessage(ctx, event) {
 							const id = String(m.user_id);
 							if (currentConfig.ownlist.includes(id)) {
 								continue;
-							} // 不改自己人							
+							} // 不改自己人
 							if (lm[id]) {
 								if (m.card !== lm[id]) {
 									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] });
@@ -233,19 +264,19 @@ async function onMessage(ctx, event) {
 										}
 									}, 5000);
 								}
-							}// 修改群名片为锁定的名字
+							} // 修改群名片为锁定的名字
 							else {
 								if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
 									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' });
 									ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
 									await sleep(6000);
 								}
-							}// 整乐子修改群名片
+							} // 整乐子修改群名片
 							continue;
 							if (m.card && m.card !== m.nickname) {
 								await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
 								ctx.logger.info(`清除${id}的群名片${m.card}`);
-							}// 清除自定义名片
+							} // 清除自定义名片
 						}
 					}
 					// 自身群名片管理
@@ -264,32 +295,22 @@ async function onMessage(ctx, event) {
 			//违禁词处理
 			if (!isself && !userAdmin && selfguanli && !userguanli && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
 				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
-				const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
-				if (!shutlist.find((m) => String(m.uin) == userId)) {
-					await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
-					await callOB11(ctx, 'send_group_msg', {
-						group_id: groupId,
-						message: [
-							{ type: 'at', data: { qq: userId } },
-							{ type: 'text', data: { text: ` 因为发违禁词而被禁言五分钟` } },
-						],
-					});
-				}
+				pushBanTask({
+					ctx,
+					groupId,
+					userId,
+					duration: 300,
+				});
 			}
 			//自动检测大段文字
 			if (textall.length > 99 && selfguanli && !isself && !userAdmin && !userguanli) {
 				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
-				const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
-				if (!shutlist.find((m) => String(m.uin) == userId)) {
-					await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
-					await callOB11(ctx, 'send_group_msg', {
-						group_id: groupId,
-						message: [
-							{ type: 'at', data: { qq: userId } },
-							{ type: 'text', data: { text: ` 因为发大段文字而被禁言五分钟` } },
-						],
-					});
-				}
+				pushBanTask({
+					ctx,
+					groupId,
+					userId,
+					duration: 300,
+				});
 			}
 			if (msg.includes('回来吧，我的人机!')) {
 				await callOB11(ctx, 'send_group_msg', {
@@ -336,17 +357,12 @@ async function onMessage(ctx, event) {
 						const yue = currentConfig.creditBalances[userId];
 						if (yue < 0) {
 							let duration = Math.abs(yue) * 60; // 转秒
-							const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
-							const userinfo = shutlist.find((m) => String(m.uin) == userId);
-							if (userinfo) {
-								const now = Math.floor(Date.now() / 1000);
-								duration = duration + userinfo.shutUpTime - now;
-							}
 							currentConfig.creditBalances[userId] = 0;
 							saveConfig(ctx, { creditBalances: currentConfig.creditBalances });
-							await callOB11(ctx, 'set_group_ban', {
-								group_id: groupId,
-								user_id: userId,
+							pushBanTask({
+								ctx,
+								groupId,
+								userId,
 								duration: duration,
 							});
 							await callOB11(ctx, 'send_group_msg', {
@@ -376,9 +392,10 @@ async function onMessage(ctx, event) {
 					const mins = Number(lockName);
 					let duration = mins * 60;
 					if (userguanli) {
-						await callOB11(ctx, 'set_group_ban', {
-							group_id: groupId,
-							user_id: targetId,
+						pushBanTask({
+							ctx,
+							groupId,
+							userId,
 							duration: duration,
 						});
 					} else {
@@ -392,17 +409,12 @@ async function onMessage(ctx, event) {
 								await callOB11(ctx, 'send_group_msg', { group_id: groupId, message: `❌ 你的余额不足（剩余 ${balance} 分钟。` });
 							} // 检查余额
 							else {
-								const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
-								const userinfo = shutlist.find((m) => String(m.uin) == targetId);
-								if (userinfo) {
-									const now = Math.floor(Date.now() / 1000);
-									duration = duration + userinfo.shutUpTime - now;
-								}
 								currentConfig.creditBalances[userId] = balance - mins;
 								saveConfig(ctx, { creditBalances: currentConfig.creditBalances });
-								await callOB11(ctx, 'set_group_ban', {
-									group_id: groupId,
-									user_id: targetId,
+								pushBanTask({
+									ctx,
+									groupId,
+									userId,
 									duration: duration,
 								});
 								await callOB11(ctx, 'send_group_msg', {
@@ -506,7 +518,7 @@ async function onMessage(ctx, event) {
 		guanli();
 
 		const gongji = async function () {
-			return;//暂停攻击
+			return; //暂停攻击
 			if (isself) {
 				return;
 			}
@@ -517,7 +529,7 @@ async function onMessage(ctx, event) {
 				return;
 			}
 			// 自动反击
-			if (currentConfig.ownlist.some((id) => atlist.includes(id)) && ['妈', '爹', '爸', '狗', '逼', '🐎', '🐴', 'nm', '屄', '木琴'].some((s) => textall.includes(s))) {
+			if (currentConfig.ownlist.some((id) => atlist.includes(id)) && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
 				await callOB11(ctx, 'send_group_msg', {
 					group_id: groupId,
 					message: [
@@ -576,9 +588,7 @@ async function onEvent(ctx, event) {
 		}
 		await callOB11(ctx, 'send_group_msg', {
 			group_id: groupId,
-			message: [
-				{ type: 'text', data: { text: `⚠️用户 ${userInfo.nickname} (${userId}) ${actionText}` } },
-			],
+			message: [{ type: 'text', data: { text: `⚠️用户 ${userInfo.nickname} (${userId}) ${actionText}` } }],
 		});
 	}
 	//防撤回
@@ -633,17 +643,12 @@ async function onEvent(ctx, event) {
 		}
 		//撤回惩罚
 		if (!isself && !userAdmin && selfguanli && !userguanli) {
-			const shutlist = await callOB11(ctx, 'get_group_shut_list', { group_id: groupId, no_cache: true });
-			if (!shutlist.find((m) => String(m.uin) == userId)) {
-				await callOB11(ctx, 'set_group_ban', { group_id: groupId, user_id: userId, duration: 300 });
-				await callOB11(ctx, 'send_group_msg', {
-					group_id: groupId,
-					message: [
-						{ type: 'at', data: { qq: userId } },
-						{ type: 'text', data: { text: ` 因为撤回消息而被禁言五分钟` } },
-					],
-				});
-			}
+			pushBanTask({
+				ctx,
+				groupId,
+				userId,
+				duration: 300,
+			});
 		}
 	}
 }
