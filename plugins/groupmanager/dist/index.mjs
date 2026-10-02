@@ -106,7 +106,7 @@ const pushBanTask = async function (task) {
 		const mtask = banTaskQueue.shift();
 		const shutlist = await callOB11(mtask.ctx, 'get_group_shut_list', { group_id: mtask.groupId, no_cache: true });
 		const userinfo = shutlist.find((m) => String(m.uin) == mtask.userId);
-		let duration = Number(mtask.duration) * 60;
+		let duration = Number(mtask.duration);
 		if (userinfo) {
 			const now = Math.floor(Date.now() / 1000);
 			duration = duration + (userinfo.shutUpTime - now);
@@ -297,7 +297,7 @@ async function onMessage(ctx, event) {
 					ctx,
 					groupId,
 					userId,
-					duration: 300,
+					duration: 1800,
 				});
 			}
 			//自动检测大段文字
@@ -307,7 +307,7 @@ async function onMessage(ctx, event) {
 					ctx,
 					groupId,
 					userId,
-					duration: 300,
+					duration: 1800,
 				});
 			}
 			if (msg.includes('回来吧，我的人机!')) {
@@ -584,7 +584,7 @@ async function onEvent(ctx, event) {
 			ctx,
 			groupId,
 			userId,
-			duration: 300,
+			duration: 1800,
 		});
 	}
 	//退群广告
@@ -654,7 +654,7 @@ async function onEvent(ctx, event) {
 				ctx,
 				groupId,
 				userId,
-				duration: 300,
+				duration: 1800,
 			});
 		}
 	}
