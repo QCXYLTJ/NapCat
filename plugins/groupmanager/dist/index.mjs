@@ -580,6 +580,15 @@ async function onEvent(ctx, event) {
 	const groupId = String(event.group_id);
 	const userId = String(event.user_id);
 	const userInfo = await callOB11(ctx, 'get_stranger_info', { user_id: userId, no_cache: true });
+	//入群禁言
+	if (event.notice_type === 'group_increase') {
+		pushBanTask({
+			ctx,
+			groupId,
+			userId,
+			duration: 300,
+		});
+	}
 	//退群广告
 	if (event.notice_type == 'group_decrease') {
 		let actionText = '从本群逃跑了';
