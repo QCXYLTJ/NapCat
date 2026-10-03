@@ -111,8 +111,8 @@ const pushBanTask = async function (task) {
 			user_id: mtask.userId,
 			no_cache: true,
 		});
-		if (userInfo) {
-			lv = userInfo.qqLevel ?? 1;
+		if (userInfo && userInfo.qqLevel) {
+			lv = userInfo.qqLevel;
 		}
 		const base = Number(mtask.duration);
 		// 幂律公式 y = 16 / lv^(2/3)
