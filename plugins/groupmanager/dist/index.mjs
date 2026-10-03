@@ -104,13 +104,26 @@ const pushBanTask = async function (task) {
 	isBanConsumerRunning = true;
 	while (banTaskQueue.length > 0) {
 		const mtask = banTaskQueue.shift();
+
+		// 在消费任务阶段，内部读取QQ等级
+		let lv = 1;
+		const userInfo = await callOB11(mtask.ctx, 'get_stranger_info', {
+			user_id: mtask.userId,
+			no_cache: true,
+		});
+		lv = userInfo.level ?? 1;
+		const base = Number(mtask.duration);
+		// 幂律公式 y = 16 / lv^(2/3)
+		const raw = (base * 16) / Math.pow(lv, 2 / 3);
+		let duration = Math.max(base, Math.floor(raw));
+
 		const shutlist = await callOB11(mtask.ctx, 'get_group_shut_list', { group_id: mtask.groupId, no_cache: true });
 		const userinfo = shutlist.find((m) => String(m.uin) == mtask.userId);
-		let duration = Number(mtask.duration);
 		if (userinfo) {
 			const now = Math.floor(Date.now() / 1000);
 			duration = duration + (userinfo.shutUpTime - now);
 		}
+
 		await callOB11(mtask.ctx, 'set_group_ban', { group_id: mtask.groupId, user_id: mtask.userId, duration: duration });
 		await sleep(1000);
 	}
@@ -297,7 +310,7 @@ async function onMessage(ctx, event) {
 					ctx,
 					groupId,
 					userId,
-					duration: 1800,
+					duration: 600,
 				});
 			}
 			//自动检测大段文字
@@ -307,7 +320,7 @@ async function onMessage(ctx, event) {
 					ctx,
 					groupId,
 					userId,
-					duration: 1800,
+					duration: 600,
 				});
 			}
 			if (msg.includes('回来吧，我的人机!')) {
@@ -577,14 +590,13 @@ async function onEvent(ctx, event) {
 	//ctx.logger.info(event);
 	const groupId = String(event.group_id);
 	const userId = String(event.user_id);
-	const userInfo = await callOB11(ctx, 'get_stranger_info', { user_id: userId, no_cache: true });
 	//入群禁言
 	if (event.notice_type === 'group_increase') {
 		pushBanTask({
 			ctx,
 			groupId,
 			userId,
-			duration: 21600,
+			duration: 7200,
 		});
 	}
 	//退群广告
@@ -595,7 +607,7 @@ async function onEvent(ctx, event) {
 		}
 		await callOB11(ctx, 'send_group_msg', {
 			group_id: groupId,
-			message: [{ type: 'text', data: { text: `⚠️用户 ${userInfo.nickname} (${userId}) ${actionText}` } }],
+			message: [{ type: 'text', data: { text: `⚠️用户 (${userId}) ${actionText}` } }],
 		});
 	}
 	//防撤回
@@ -654,7 +666,7 @@ async function onEvent(ctx, event) {
 				ctx,
 				groupId,
 				userId,
-				duration: 1800,
+				duration: 600,
 			});
 		}
 	}
