@@ -307,23 +307,23 @@ async function onMessage(ctx, event) {
 			}
 			//违禁词处理
 			if (!isself && !userAdmin && selfguanli && !userguanli && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
-				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
 				pushBanTask({
 					ctx,
 					groupId,
 					userId,
 					duration: 600,
 				});
+				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
 			}
 			//自动检测大段文字
 			if (textall.length > 99 && selfguanli && !isself && !userAdmin && !userguanli) {
-				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
 				pushBanTask({
 					ctx,
 					groupId,
 					userId,
 					duration: 600,
 				});
+				await callOB11(ctx, 'delete_msg', { message_id: event.message_id });
 			}
 			if (msg.includes('回来吧，我的人机!')) {
 				await callOB11(ctx, 'send_group_msg', {
