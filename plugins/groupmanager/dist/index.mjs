@@ -592,14 +592,17 @@ async function onEvent(ctx, event) {
 	//ctx.logger.info(event);
 	const groupId = String(event.group_id);
 	const userId = String(event.user_id);
+	const userAdmin = currentConfig.ownlist.includes(userId);
 	//入群禁言
 	if (event.notice_type === 'group_increase') {
-		pushBanTask({
-			ctx,
-			groupId,
-			userId,
-			duration: 7200,
-		});
+		if (!userAdmin) {
+			pushBanTask({
+				ctx,
+				groupId,
+				userId,
+				duration: 7200,
+			});
+		}
 	}
 	//退群广告
 	if (event.notice_type == 'group_decrease') {
@@ -620,7 +623,6 @@ async function onEvent(ctx, event) {
 		if (currentConfig.ownlist.includes(String(event.operator_id))) {
 			return;
 		}
-		const userAdmin = currentConfig.ownlist.includes(userId);
 		const ownerinfo = await callOB11(ctx, 'get_login_info', {});
 		const ownerqq = String(ownerinfo.user_id);
 		const isself = userId === ownerqq;
