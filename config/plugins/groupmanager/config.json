@@ -1,5 +1,6 @@
 {
   "welcomeEnable": true,
+  "gongji": false,
   "welcomeTemplate": "欢迎 {nickname}将军前来觐见！",
   "filterKeywords": [
     "妈",
@@ -98,5 +99,7 @@
     "2324729701": 307,
     "2791034087": 18460
   },
-  "qunheimingdan": []
+  "qunheimingdan": [
+    "369015096"
+  ]
 }

@@ -13,6 +13,7 @@ const DEFAULT_CONFIG = {
 	ownlist: [],
 	creditBalances: {}, // 用户的可禁言天数余额
 	qunheimingdan: [],
+	gongji: false,
 };
 Reflect.defineProperty(Array.prototype, 'remove', {
 	value(value) {
@@ -257,9 +258,6 @@ async function onMessage(ctx, event) {
 						for (const m of ms) {
 							// 锁定名片
 							const id = String(m.user_id);
-							if (currentConfig.ownlist.includes(id)) {
-								continue;
-							} // 不改自己人
 							if (lm[id]) {
 								if (m.card !== lm[id]) {
 									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: lm[id] });
@@ -277,19 +275,18 @@ async function onMessage(ctx, event) {
 										}
 									}, 5000);
 								}
-							} // 修改群名片为锁定的名字
-							else {
-								if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
-									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' });
-									ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
-									await sleep(6000);
-								}
-							} // 整乐子修改群名片
-							continue;
-							if (m.card && m.card !== m.nickname) {
+								continue;
+							} // 锁定群名片
+							if (currentConfig.ownlist.includes(id)) {
 								await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
-								ctx.logger.info(`清除${id}的群名片${m.card}`);
-							} // 清除自定义名片
+								continue;
+							} // 自己人
+							if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
+								await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: '你已被移出群聊   　　　 　　　　  　　　　' });
+								ctx.logger.info(`修改${id}的群名片${m.card || m.nickname}为【你已被移出群聊   　　　 　　　　  　　　　】`);
+								await sleep(6000);
+								continue;
+							} // 你已被移出群聊
 						}
 					}
 					// 自身群名片管理
@@ -342,6 +339,18 @@ async function onMessage(ctx, event) {
 				const lockName = parts[2];
 				const atSeg = event.message.find((s) => s.type === 'at');
 				const targetId = atSeg ? String(atSeg.data?.qq) : params;
+				if (cmd == '开始攻击') {
+					if (!currentConfig.gongji) {
+						currentConfig.gongji = true;
+						saveConfig(ctx, { gongji: currentConfig.gongji });
+					}
+				}
+				if (cmd == '终止攻击') {
+					if (currentConfig.gongji) {
+						currentConfig.gongji = false;
+						saveConfig(ctx, { gongji: currentConfig.gongji });
+					}
+				}
 				if (cmd == '炸群') {
 					currentConfig.zhaqun = setInterval(async function () {
 						await callOB11(ctx, 'send_group_msg', {
@@ -531,58 +540,59 @@ async function onMessage(ctx, event) {
 		guanli();
 
 		const gongji = async function () {
-			return; //暂停攻击
-			if (isself) {
-				return;
-			}
-			if (userAdmin) {
-				return;
-			}
-			if (currentConfig.qunheimingdan.includes(groupId)) {
-				return;
-			}
-			// 自动反击
-			if (currentConfig.ownlist.some((id) => atlist.includes(id)) && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
-				await callOB11(ctx, 'send_group_msg', {
-					group_id: groupId,
-					message: [
-						{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
-						{ type: 'at', data: { qq: userId } },
-					],
-				});
-				if (!currentConfig.targetedUsers.includes(userId)) {
-					currentConfig.targetedUsers.push(userId);
-					saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+			if (currentConfig.gongji) {
+				if (isself) {
+					return;
+				}
+				if (userAdmin) {
+					return;
+				}
+				if (currentConfig.qunheimingdan.includes(groupId)) {
+					return;
+				}
+				// 自动反击
+				if (currentConfig.ownlist.some((id) => atlist.includes(id)) && currentConfig.filterKeywords.some((s) => textall.includes(s))) {
 					await callOB11(ctx, 'send_group_msg', {
 						group_id: groupId,
 						message: [
-							{ type: 'text', data: { text: ` 我准备开始肏你老母的大黑屄了` } },
+							{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+							{ type: 'at', data: { qq: userId } },
+						],
+					});
+					if (!currentConfig.targetedUsers.includes(userId)) {
+						currentConfig.targetedUsers.push(userId);
+						saveConfig(ctx, { targetedUsers: currentConfig.targetedUsers });
+						await callOB11(ctx, 'send_group_msg', {
+							group_id: groupId,
+							message: [
+								{ type: 'text', data: { text: ` 我准备开始肏你老母的大黑屄了` } },
+								{ type: 'at', data: { qq: userId } },
+							],
+						});
+					}
+				}
+
+				//随机攻击
+				if (Math.random() < 0.1) {
+					await callOB11(ctx, 'send_group_msg', {
+						group_id: groupId,
+						message: [
+							{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
 							{ type: 'at', data: { qq: userId } },
 						],
 					});
 				}
-			}
 
-			//随机攻击
-			if (Math.random() < 0.1) {
-				await callOB11(ctx, 'send_group_msg', {
-					group_id: groupId,
-					message: [
-						{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
-						{ type: 'at', data: { qq: userId } },
-					],
-				});
-			}
-
-			//群聊自动攻击
-			if (currentConfig.targetedUsers.includes(userId)) {
-				await callOB11(ctx, 'send_group_msg', {
-					group_id: groupId,
-					message: [
-						{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
-						{ type: 'at', data: { qq: userId } },
-					],
-				});
+				//追杀目标
+				if (currentConfig.targetedUsers.includes(userId)) {
+					await callOB11(ctx, 'send_group_msg', {
+						group_id: groupId,
+						message: [
+							{ type: 'text', data: { text: ` ${gongjilist.randomget()}` } },
+							{ type: 'at', data: { qq: userId } },
+						],
+					});
+				}
 			}
 		};
 		gongji();
