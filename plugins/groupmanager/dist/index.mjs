@@ -627,9 +627,6 @@ async function onEvent(ctx, event) {
 	}
 	//防撤回
 	if (event.notice_type == 'group_recall') {
-		if (currentConfig.qunheimingdan.includes(groupId)) {
-			return;
-		}
 		if (currentConfig.ownlist.includes(String(event.operator_id))) {
 			return;
 		}
