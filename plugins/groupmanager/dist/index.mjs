@@ -274,11 +274,16 @@ async function onMessage(ctx, event) {
 											});
 										}
 									}, 5000);
+									await sleep(6000);
 								}
 								continue;
 							} // 锁定群名片
 							if (currentConfig.ownlist.includes(id)) {
-								await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
+								if (m.card != m.nickname) {
+									await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: id, card: m.nickname }); //清空群名片
+									ctx.logger.info(`修改${id}的群名片${m.card}为【${m.nickname}】`);
+									await sleep(6000);
+								}
 								continue;
 							} // 自己人
 							if (m.card !== '你已被移出群聊   　　　 　　　　  　　　　' && !m.is_robot) {
