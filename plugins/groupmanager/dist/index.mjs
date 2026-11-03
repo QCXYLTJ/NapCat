@@ -105,11 +105,11 @@ const pushBanTask = async function (task) {
 	isBanConsumerRunning = true;
 	while (banTaskQueue.length > 0) {
 		const mtask = banTaskQueue.shift();
-
+		const ID = String(mtask.userId);
 		// 在消费任务阶段，内部读取QQ等级
 		let lv = 1;
 		const userInfo = await callOB11(mtask.ctx, 'get_stranger_info', {
-			user_id: mtask.userId,
+			user_id: ID,
 			no_cache: true,
 		});
 		if (userInfo && userInfo.qqLevel) {
@@ -121,13 +121,13 @@ const pushBanTask = async function (task) {
 		let duration = Math.max(base, Math.floor(raw));
 
 		const shutlist = await callOB11(mtask.ctx, 'get_group_shut_list', { group_id: mtask.groupId, no_cache: true });
-		const userinfo = shutlist.find((m) => String(m.uin) == mtask.userId);
+		const userinfo = shutlist.find((m) => String(m.uin) == ID);
 		if (userinfo) {
 			const now = Math.floor(Date.now() / 1000);
 			duration = duration + (userinfo.shutUpTime - now);
 		}
 
-		await callOB11(mtask.ctx, 'set_group_ban', { group_id: mtask.groupId, user_id: mtask.userId, duration: duration });
+		await callOB11(mtask.ctx, 'set_group_ban', { group_id: mtask.groupId, user_id: ID, duration: duration });
 		await sleep(1000);
 	}
 	isBanConsumerRunning = false;
@@ -192,6 +192,7 @@ async function onMessage(ctx, event) {
 	else {
 		const groupId = String(event.group_id);
 		const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
+		//ctx.logger.info(own);
 		const selfguanli = ['owner', 'admin'].includes(own.role);
 		const userguanli = ['owner', 'admin'].includes(event.sender.role);
 		const msg = event.raw_message?.trim() || '';
@@ -250,7 +251,6 @@ async function onMessage(ctx, event) {
 			if (!window[groupId]) {
 				window[groupId] = true;
 				const gaiming = async function () {
-					// 他人群名片管理
 					if (selfguanli) {
 						const ms = await callOB11(ctx, 'get_group_member_list', { group_id: groupId, no_cache: true });
 						const lm = currentConfig.lockedNicknames;
@@ -293,15 +293,15 @@ async function onMessage(ctx, event) {
 								continue;
 							} // 你已被移出群聊
 						}
-					}
-					// 自身群名片管理
+					}// 他人群名片管理			
 					else {
 						const own = await callOB11(ctx, 'get_group_member_info', { group_id: groupId, user_id: ownerqq, no_cache: true });
 						if (own.card != own.nickname) {
-							await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: own.user_id, card: own.nickname });
+							await callOB11(ctx, 'set_group_card', { group_id: groupId, user_id: ownerqq, card: own.nickname });
 							ctx.logger.info(`重置自己群名片${own.card}为${own.nickname}`);
+							await sleep(6000);
 						} //清空群名片
-					}
+					}// 自身群名片管理
 					ctx.logger.info(`检测群聊${groupId}名片已完成`);
 					setTimeout(gaiming, 60000);
 				};
